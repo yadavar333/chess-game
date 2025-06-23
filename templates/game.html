@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Game - {{ game_id }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header .game-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .game-id {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Game Layout */
+        .game-layout {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        /* Chess Board Section */
+        .board-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .board-section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        #board {
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar-section h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #333;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Game Status */
+        .game-status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status-waiting {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .status-completed {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+        }
+
+        /* Turn Indicator */
+        .turn-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .turn-white {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            color: #374151;
+            border: 2px solid #d1d5db;
+        }
+
+        .turn-black {
+            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+            color: white;
+            border: 2px solid #4b5563;
+        }
+
+        /* Player Info */
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+        }
+
+        .player-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+        }
+
+        .player-color.white {
+            background: #f3f4f6;
+        }
+
+        .player-color.black {
+            background: #374151;
+        }
+
+        .current-player {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-color: #3b82f6;
+        }
+
+        /* Move History */
+        .move-history {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .move-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        .move-number {
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        .move-text {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        /* Connection Status */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-connected {
+            background: #10b981;
+        }
+
+        .status-disconnected {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .game-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .sidebar {
+                order: -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .header .game-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .board-section {
+                padding: 20px;
+            }
+
+            #board {
+                max-width: 100%;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Error Messages */
+        .error-message {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        /* Success Messages */
+        .success-message {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <i class="fas fa-chess-board"></i>
+                Chess Game
+            </h1>
+            <div class="game-info">
+                <div class="game-id">
+                    <i class="fas fa-hashtag"></i>
+                    {{ game_id }}
+                </div>
+                <a href="/" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Game Layout -->
+        <div class="game-layout">
+            <!-- Chess Board Section -->
+            <div class="board-section">
+                <h2><i class="fas fa-chess-king"></i> Game Board</h2>
+                <div id="board"></div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Game Status -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-info-circle"></i> Game Status</h3>
+                    <div class="game-status status-active" id="game-status">
+                        <i class="fas fa-play"></i> Game Active
+                    </div>
+                    <div class="turn-indicator turn-white" id="turn-indicator">
+                        <i class="fas fa-chess-king"></i>
+                        <span id="turn-text">White's Turn</span>
+                    </div>
+                </div>
+
+                <!-- Player Information -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-users"></i> Players</h3>
+                    <div class="player-info" id="white-player">
+                        <div class="player-color white"></div>
+                        <span>White Player</span>
+                    </div>
+                    <div class="player-info" id="black-player">
+                        <div class="player-color black"></div>
+                        <span>Black Player</span>
+                    </div>
+                    <div
+                        style="margin-top: 15px; padding: 10px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
+                        <strong>Your Color:</strong>
+                        <span style="color: {{ 'white' if user_color == 'white' else 'black' }}; font-weight: 600;">
+                            {{ user_color.title() }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Move History -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-history"></i> Move History</h3>
+                    <div class="move-history" id="move-history">
+                        <div style="text-align: center; color: #6b7280; padding: 20px;">
+                            <i class="fas fa-chess-board" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                            <p>No moves yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connection Status -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-wifi"></i> Connection</h3>
+                    <div class="connection-status">
+                        <span class="status-indicator status-disconnected" id="status-indicator"></span>
+                        <span id="connection-text">Connecting...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script>
+        // Game configuration
+        const gameId = '{{ game_id }}';
+        const userColor = '{{ user_color }}';
+        const initialFen = '{{ fen }}';
+        const currentTurn = '{{ turn }}';
+        const currentUser = '{{ current_user.username if current_user else "" }}';
+
+        let board = null;
+        let game = new Chess(initialFen);
+        let socket = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+
+        // Initialize chess board
+        function initBoard() {
+            const config = {
+                position: initialFen,
+                draggable: true,
+                onDrop: onDrop,
+                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+            };
+
+            board = Chessboard('board', config);
+            board.resize();
+        }
+
+        // Handle piece drop
+        function onDrop(source, target) {
+            // Check if it's the player's turn
+            if ((userColor === 'white' && game.turn() === 'w') ||
+                (userColor === 'black' && game.turn() === 'b')) {
+
+                const move = game.move({
+                    from: source,
+                    to: target,
+                    promotion: 'q' // Always promote to queen for simplicity
+                });
+
+                if (move === null) {
+                    return 'snapback';
+                }
+
+                // Send move to server
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'move',
+                        move: source + target
+                    }));
+                }
+
+                updateTurnIndicator();
+            } else {
+                return 'snapback';
+            }
+        }
+
+        // Update turn indicator
+        function updateTurnIndicator() {
+            const turnIndicator = document.getElementById('turn-indicator');
+            const turnText = document.getElementById('turn-text');
+
+            if (game.turn() === 'w') {
+                turnIndicator.className = 'turn-indicator turn-white';
+                turnText.textContent = "White's Turn";
+            } else {
+                turnIndicator.className = 'turn-indicator turn-black';
+                turnText.textContent = "Black's Turn";
+            }
+        }
+
+        // Update move history
+        function updateMoveHistory(moves) {
+            const historyContainer = document.getElementById('move-history');
+
+            if (moves.length === 0) {
+                historyContainer.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; padding: 20px;">
+                        <i class="fas fa-chess-board" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>No moves yet</p>
+                    </div>
+                `;
+                return;
+            }
+
+            historyContainer.innerHTML = '';
+            moves.forEach((move, index) => {
+                const moveItem = document.createElement('div');
+                moveItem.className = 'move-item';
+                moveItem.innerHTML = `
+                    <span class="move-number">${Math.floor(index / 2) + 1}.</span>
+                    <span class="move-text">${move}</span>
+                `;
+                historyContainer.appendChild(moveItem);
+            });
+
+            // Scroll to bottom
+            historyContainer.scrollTop = historyContainer.scrollHeight;
+        }
+
+        // WebSocket connection
+        function connectWebSocket() {
+            try {
+                socket = new WebSocket(`ws://${window.location.host}/ws/${gameId}`);
+
+                socket.onopen = function () {
+                    console.log('Game WebSocket connected');
+                    document.getElementById('status-indicator').className = 'status-indicator status-connected';
+                    document.getElementById('connection-text').textContent = 'Connected';
+                    reconnectAttempts = 0;
+                };
+
+                socket.onmessage = function (event) {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type === 'move') {
+                        // Update board position
+                        game = new Chess(data.fen);
+                        board.position(data.fen);
+
+                        // Update turn indicator
+                        updateTurnIndicator();
+
+                        // Update move history
+                        if (data.move_history) {
+                            updateMoveHistory(data.move_history);
+                        }
+
+                        // Update game status
+                        if (data.game_status) {
+                            updateGameStatus(data.game_status);
+                        }
+                    } else if (data.type === 'error') {
+                        showError(data.message);
+                    }
+                };
+
+                socket.onclose = function () {
+                    console.log('Game WebSocket disconnected');
+                    document.getElementById('status-indicator').className = 'status-indicator status-disconnected';
+                    document.getElementById('connection-text').textContent = 'Disconnected';
+
+                    // Attempt to reconnect
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        reconnectAttempts++;
+                        setTimeout(connectWebSocket, 2000);
+                    }
+                };
+
+                socket.onerror = function (error) {
+                    console.error('Game WebSocket error:', error);
+                };
+
+            } catch (error) {
+                console.error('Failed to connect to game WebSocket:', error);
+            }
+        }
+
+        // Update game status
+        function updateGameStatus(status) {
+            const statusElement = document.getElementById('game-status');
+
+            switch (status) {
+                case 'checkmate':
+                    statusElement.className = 'game-status status-completed';
+                    statusElement.innerHTML = '<i class="fas fa-crown"></i> Checkmate!';
+                    break;
+                case 'stalemate':
+                    statusElement.className = 'game-status status-completed';
+                    statusElement.innerHTML = '<i class="fas fa-handshake"></i> Stalemate!';
+                    break;
+                case 'draw':
+                    statusElement.className = 'game-status status-completed';
+                    statusElement.innerHTML = '<i class="fas fa-equals"></i> Draw!';
+                    break;
+                default:
+                    statusElement.className = 'game-status status-active';
+                    statusElement.innerHTML = '<i class="fas fa-play"></i> Game Active';
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+
+            const container = document.querySelector('.container');
+            container.insertBefore(errorDiv, container.firstChild);
+
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            initBoard();
+            connectWebSocket();
+            updateTurnIndicator();
+
+            // Handle window resize
+            window.addEventListener('resize', function () {
+                if (board) {
+                    board.resize();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
