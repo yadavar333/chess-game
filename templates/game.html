@@ -99,6 +99,11 @@
         <h2>Game Board</h2>
         <div id="board"></div>
 
+        <div id="check-notification"
+            style="text-align: center; margin: 10px 0; font-weight: bold; color: red; display: none;">
+            Check!
+        </div>
+
         <div class="status-section">
             <h3>Game Status</h3>
             <div id="game-status">Game Active</div>
@@ -184,6 +189,7 @@
                 }
 
                 updateTurnIndicator();
+                checkForCheck();
             } else {
                 return 'snapback';
             }
@@ -237,6 +243,8 @@
 
                         if (data.game_status) {
                             updateGameStatus(data.game_status);
+                        } else {
+                            checkForCheck();
                         }
                     } else if (data.type === 'error') {
                         alert('Error: ' + data.message);
@@ -262,18 +270,52 @@
 
         function updateGameStatus(status) {
             const statusElement = document.getElementById('game-status');
+            const checkNotification = document.getElementById('check-notification');
+
+            // Determine if this player should see the notification
+            const shouldShowNotification = (userColor === 'white' && game.turn() === 'b') ||
+                (userColor === 'black' && game.turn() === 'w') ||
+                status === 'stalemate' || status === 'draw';
+
             switch (status) {
                 case 'checkmate':
                     statusElement.textContent = 'Checkmate!';
+                    if (shouldShowNotification) {
+                        checkNotification.textContent = 'Checkmate! Game Over!';
+                        checkNotification.style.display = 'block';
+                    }
                     break;
                 case 'stalemate':
                     statusElement.textContent = 'Stalemate!';
+                    checkNotification.textContent = 'Stalemate! Game is a draw!';
+                    checkNotification.style.display = 'block';
                     break;
                 case 'draw':
                     statusElement.textContent = 'Draw!';
+                    checkNotification.textContent = 'Draw! Game ended in a draw!';
+                    checkNotification.style.display = 'block';
                     break;
                 default:
                     statusElement.textContent = 'Game Active';
+                // Don't hide check notification here - let checkForCheck handle it
+            }
+        }
+
+        function checkForCheck() {
+            const checkNotification = document.getElementById('check-notification');
+
+            // Check if the current player's king is in check
+            const isCurrentPlayerInCheck = (userColor === 'white' && game.turn() === 'b' && game.in_check()) ||
+                (userColor === 'black' && game.turn() === 'w' && game.in_check());
+
+            if (isCurrentPlayerInCheck) {
+                checkNotification.textContent = 'Check!';
+                checkNotification.style.display = 'block';
+            } else {
+                // Only hide if it was showing "Check!" (not game end states)
+                if (checkNotification.textContent === 'Check!') {
+                    checkNotification.style.display = 'none';
+                }
             }
         }
 
