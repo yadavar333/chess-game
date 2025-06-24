@@ -210,6 +210,16 @@ def get_online_users() -> List[str]:
     return [user["username"] for user in online_users.values()]
 
 async def broadcast_online_users():
+    # Clean up stale users (not seen in last 5 minutes)
+    current_time = datetime.now()
+    stale_users = []
+    for user_id, user_data in online_users.items():
+        if (current_time - user_data["last_seen"]).total_seconds() > 300:  # 5 minutes
+            stale_users.append(user_id)
+    
+    for user_id in stale_users:
+        remove_online_user(user_id)
+    
     online_list = get_online_users()
     message = {
         "type": "online_users",
@@ -239,6 +249,13 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optiona
 async def home(request: Request, db: Session = Depends(get_db)):
     current_user = get_current_user(request, db)
     online_list = get_online_users()
+    
+    # Add current user to online users if they're logged in
+    if current_user and current_user.id not in online_users:
+        add_online_user(current_user.id, current_user.username)
+        await broadcast_online_users()
+        online_list = get_online_users()  # Refresh the list
+    
     return templates.TemplateResponse("index.html", {
         "request": request, 
         "online_users": online_list,
@@ -266,6 +283,13 @@ async def login(request: Request, username: str = Form(...), password: str = For
         raise HTTPException(status_code=400, detail="Invalid username or password")
     
     session_id = create_session(user_id, db)
+    
+    # Add user to online users list
+    user = get_user(user_id, db)
+    if user:
+        add_online_user(user_id, user.username)
+        await broadcast_online_users()
+    
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(key="session_id", value=session_id, httponly=True)
     return response

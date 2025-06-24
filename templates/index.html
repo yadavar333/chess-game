@@ -230,8 +230,8 @@
             </div>
 
             <div class="online-users">
-                <h3>Online Players</h3>
-                <ul>
+                <h3>Online Players (<span id="online-count">{{ online_users|length }}</span>)</h3>
+                <ul id="online-users-list">
                     {% for user in online_users %}
                     <li>👤 {{ user }}</li>
                     {% endfor %}
@@ -260,6 +260,88 @@
         </div>
         {% endif %}
     </div>
+
+    {% if current_user %}
+    <script>
+        // Real-time online users tracking
+        let presenceSocket = null;
+        let pingInterval = null;
+
+        function connectPresenceWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            presenceSocket = new WebSocket(`${protocol}//${window.location.host}/ws/presence`);
+
+            presenceSocket.onopen = function () {
+                console.log('Presence WebSocket connected');
+                // Start sending ping messages to keep connection alive
+                pingInterval = setInterval(() => {
+                    if (presenceSocket.readyState === WebSocket.OPEN) {
+                        presenceSocket.send(JSON.stringify({
+                            type: 'ping',
+                            user_id: '{{ current_user.id }}'
+                        }));
+                    }
+                }, 30000); // Ping every 30 seconds
+            };
+
+            presenceSocket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'online_users') {
+                    updateOnlineUsers(data.users);
+                }
+            };
+
+            presenceSocket.onclose = function () {
+                console.log('Presence WebSocket disconnected');
+                clearInterval(pingInterval);
+                // Try to reconnect after 5 seconds
+                setTimeout(connectPresenceWebSocket, 5000);
+            };
+
+            presenceSocket.onerror = function (error) {
+                console.error('Presence WebSocket error:', error);
+            };
+        }
+
+        function updateOnlineUsers(users) {
+            const onlineCount = document.getElementById('online-count');
+            const onlineList = document.getElementById('online-users-list');
+
+            if (onlineCount) {
+                onlineCount.textContent = users.length;
+            }
+
+            if (onlineList) {
+                onlineList.innerHTML = '';
+                if (users.length === 0) {
+                    onlineList.innerHTML = '<li>No players online</li>';
+                } else {
+                    users.forEach(user => {
+                        const li = document.createElement('li');
+                        li.textContent = `👤 ${user}`;
+                        onlineList.appendChild(li);
+                    });
+                }
+            }
+        }
+
+        // Connect to presence WebSocket when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            connectPresenceWebSocket();
+        });
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function () {
+            if (pingInterval) {
+                clearInterval(pingInterval);
+            }
+            if (presenceSocket) {
+                presenceSocket.close();
+            }
+        });
+    </script>
+    {% endif %}
 </body>
 
 </html>
