@@ -14,9 +14,9 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
             min-height: 100vh;
-            color: #333;
+            color: #ffffff;
             line-height: 1.6;
         }
 
@@ -31,15 +31,22 @@
             color: white;
             font-size: 3rem;
             margin-bottom: 40px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         .card {
-            background: white;
-            border-radius: 15px;
+            background: #ffffff;
+            border-radius: 8px;
             padding: 30px;
             margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #000000;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
         }
 
         .welcome-section {
@@ -49,15 +56,15 @@
 
         .welcome-section p {
             font-size: 1.2rem;
-            color: #666;
+            color: #333333;
             margin-bottom: 20px;
         }
 
         h2 {
-            color: #333;
+            color: #000000;
             margin-bottom: 20px;
             font-size: 1.8rem;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid #000000;
             padding-bottom: 10px;
         }
 
@@ -69,25 +76,28 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #555;
+            color: #333333;
         }
 
         input[type="text"],
         input[type="password"] {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
             font-size: 16px;
             margin-bottom: 15px;
-            transition: border-color 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #ffffff;
+            color: #000000;
         }
 
         input[type="text"]:focus,
         input[type="password"]:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
         }
 
         input[type="radio"] {
@@ -96,41 +106,45 @@
         }
 
         button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #000000 0%, #333333 100%);
             color: white;
             border: none;
             padding: 12px 24px;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             width: 100%;
         }
 
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #333333 0%, #000000 100%);
         }
 
         .logout-btn {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            background: linear-gradient(135deg, #000000 0%, #333333 100%);
             margin-bottom: 20px;
         }
 
         .logout-btn:hover {
-            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #333333 0%, #000000 100%);
         }
 
         .online-users {
-            background: #f8f9fa;
-            border-radius: 8px;
+            background: #f5f5f5;
+            border-radius: 6px;
             padding: 15px;
             margin-top: 20px;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
         }
 
         .online-users h3 {
-            color: #333;
+            color: #000000;
             margin-bottom: 15px;
             font-size: 1.3rem;
         }
@@ -140,12 +154,19 @@
         }
 
         .online-users li {
-            background: white;
+            background: #ffffff;
             padding: 8px 12px;
             margin-bottom: 5px;
-            border-radius: 5px;
-            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            border-left: 4px solid #000000;
             font-weight: 500;
+            transition: all 0.2s ease;
+            color: #000000;
+        }
+
+        .online-users li:hover {
+            transform: translateX(3px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .game-options {
