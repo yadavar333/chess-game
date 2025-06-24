@@ -1,0 +1,5 @@
+{
+    "static_dir": "static",
+    "templates_dir": "templates",
+    "database_url": "sqlite:///./data/chess_game.db"
+}
