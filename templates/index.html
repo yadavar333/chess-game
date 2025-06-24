@@ -24,6 +24,13 @@
         <button type="submit">Create Game</button>
     </form>
 
+    <h2>Join Existing Game</h2>
+    <form action="/join-game" method="post">
+        <label>Enter Game Code:</label><br>
+        <input type="text" name="game_code" required><br>
+        <button type="submit">Join Game</button>
+    </form>
+
     <h2>Online Users</h2>
     <ul>
         {% for user in online_users %}

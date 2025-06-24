@@ -293,6 +293,28 @@ async def create_game(request: Request, color: str = Form(...), db: Session = De
     game_id = game_manager.create_game(current_user.id, color, db)
     return RedirectResponse(url=f"/game/{game_id}", status_code=303)
 
+@app.post("/join-game")
+async def join_game(request: Request, game_code: str = Form(...), db: Session = Depends(get_db)):
+    current_user = get_current_user(request, db)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    
+    game = game_manager.get_game(game_code, db)
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    
+    # Check if user is already a player
+    existing_player = db.query(GamePlayer).filter(
+        GamePlayer.game_id == game_code,
+        GamePlayer.user_id == current_user.id
+    ).first()
+    
+    if not existing_player:
+        if not game_manager.join_game(game_code, current_user.id, db):
+            raise HTTPException(status_code=400, detail="Game is full")
+    
+    return RedirectResponse(url=f"/game/{game_code}", status_code=303)
+
 @app.get("/game/{game_id}", response_class=HTMLResponse)
 async def game_page(request: Request, game_id: str, db: Session = Depends(get_db)):
     current_user = get_current_user(request, db)

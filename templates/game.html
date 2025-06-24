@@ -6,38 +6,127 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chess Game - {{ game_id }}</title>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #board {
+            width: 400px;
+            height: 400px;
+            margin: 20px auto;
+            display: block;
+        }
+
+        .game-info {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .game-info p {
+            margin: 5px 0;
+        }
+
+        .status-section {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .move-history {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+
+        .move-history p {
+            margin: 2px 0;
+            font-size: 14px;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Chess Game</h1>
-    <p>Game ID: {{ game_id }}</p>
-    <p>Your Color: {{ user_color }}</p>
-    <p>Current Turn: {{ turn }}</p>
+    <div class="container">
+        <h1>Chess Game</h1>
 
-    <a href="/">Back to Home</a>
+        <div class="game-info">
+            <p><strong>Game ID:</strong> {{ game_id }}</p>
+            <p><strong>Your Color:</strong> {{ user_color }}</p>
+            <p><strong>Current Turn:</strong> {{ turn }}</p>
+        </div>
 
-    <h2>Game Board</h2>
-    <div id="board"></div>
+        <a href="/">← Back to Home</a>
 
-    <h2>Game Status</h2>
-    <div id="game-status">Game Active</div>
+        <h2>Game Board</h2>
+        <div id="board"></div>
 
-    <h2>Turn</h2>
-    <div id="turn-indicator">{{ turn.title() }}'s Turn</div>
+        <div class="status-section">
+            <h3>Game Status</h3>
+            <div id="game-status">Game Active</div>
+        </div>
 
-    <h2>Players</h2>
-    <div>
-        <p>White Player</p>
-        <p>Black Player</p>
+        <div class="status-section">
+            <h3>Turn</h3>
+            <div id="turn-indicator">{{ turn.title() }}'s Turn</div>
+        </div>
+
+        <div class="status-section">
+            <h3>Players</h3>
+            <p>White Player</p>
+            <p>Black Player</p>
+        </div>
+
+        <div class="status-section">
+            <h3>Move History</h3>
+            <div id="move-history" class="move-history">
+                <p>No moves yet</p>
+            </div>
+        </div>
+
+        <div class="status-section">
+            <h3>Connection</h3>
+            <div id="connection-status">Connecting...</div>
+        </div>
     </div>
-
-    <h2>Move History</h2>
-    <div id="move-history">
-        <p>No moves yet</p>
-    </div>
-
-    <h2>Connection</h2>
-    <div id="connection-status">Connecting...</div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
@@ -61,11 +150,16 @@
                 position: initialFen,
                 draggable: true,
                 onDrop: onDrop,
-                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+                boardTheme: 'classic'
             };
 
             board = Chessboard('board', config);
-            board.resize();
+
+            // Ensure proper sizing
+            setTimeout(() => {
+                board.resize();
+            }, 100);
         }
 
         function onDrop(source, target) {
