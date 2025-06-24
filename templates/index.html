@@ -5,57 +5,240 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chess Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 3rem;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .welcome-section p {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        form {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="radio"] {
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            margin-bottom: 20px;
+        }
+
+        .logout-btn:hover {
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .online-users {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .online-users h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .online-users ul {
+            list-style: none;
+        }
+
+        .online-users li {
+            background: white;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            font-weight: 500;
+        }
+
+        .game-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .game-options {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .container {
+                padding: 20px 15px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Chess Game</h1>
+    <div class="container">
+        <h1>♔ Chess Game ♔</h1>
 
-    {% if current_user %}
-    <p>Welcome, {{ current_user.username }}!</p>
-    <form action="/logout" method="post">
-        <button type="submit">Logout</button>
-    </form>
+        {% if current_user %}
+        <div class="card">
+            <div class="welcome-section">
+                <p>Welcome back, <strong>{{ current_user.username }}</strong>!</p>
+            </div>
 
-    <h2>Create New Game</h2>
-    <form action="/create-game" method="post">
-        <label>Choose your color:</label><br>
-        <input type="radio" name="color" value="white" checked> White<br>
-        <input type="radio" name="color" value="black"> Black<br>
-        <button type="submit">Create Game</button>
-    </form>
+            <form action="/logout" method="post">
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
 
-    <h2>Join Existing Game</h2>
-    <form action="/join-game" method="post">
-        <label>Enter Game Code:</label><br>
-        <input type="text" name="game_code" required><br>
-        <button type="submit">Join Game</button>
-    </form>
+            <div class="game-options">
+                <div class="card">
+                    <h2>Create New Game</h2>
+                    <form action="/create-game" method="post">
+                        <label>Choose your color:</label>
+                        <div style="margin: 10px 0;">
+                            <input type="radio" name="color" value="white" checked> <strong>White</strong> (moves
+                            first)<br>
+                            <input type="radio" name="color" value="black"> <strong>Black</strong>
+                        </div>
+                        <button type="submit">Create Game</button>
+                    </form>
+                </div>
 
-    <h2>Online Users</h2>
-    <ul>
-        {% for user in online_users %}
-        <li>{{ user }}</li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <h2>Login</h2>
-    <form action="/login" method="post">
-        <label>Username:</label><br>
-        <input type="text" name="username" required><br>
-        <label>Password:</label><br>
-        <input type="password" name="password" required><br>
-        <button type="submit">Login</button>
-    </form>
+                <div class="card">
+                    <h2>Join Existing Game</h2>
+                    <form action="/join-game" method="post">
+                        <label>Enter Game Code:</label>
+                        <input type="text" name="game_code" required placeholder="e.g., abc12345">
+                        <button type="submit">Join Game</button>
+                    </form>
+                </div>
+            </div>
 
-    <h2>Register</h2>
-    <form action="/register" method="post">
-        <label>Username:</label><br>
-        <input type="text" name="username" required><br>
-        <label>Password:</label><br>
-        <input type="password" name="password" required><br>
-        <button type="submit">Register</button>
-    </form>
-    {% endif %}
+            <div class="online-users">
+                <h3>Online Players</h3>
+                <ul>
+                    {% for user in online_users %}
+                    <li>👤 {{ user }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <h2>Login</h2>
+            <form action="/login" method="post">
+                <label>Username:</label>
+                <input type="text" name="username" required placeholder="Enter your username">
+                <label>Password:</label>
+                <input type="password" name="password" required placeholder="Enter your password">
+                <button type="submit">Login</button>
+            </form>
+
+            <h2>Register</h2>
+            <form action="/register" method="post">
+                <label>Username:</label>
+                <input type="text" name="username" required placeholder="Choose a username">
+                <label>Password:</label>
+                <input type="password" name="password" required placeholder="Choose a password">
+                <button type="submit">Register</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
 </body>
 
 </html>
