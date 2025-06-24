@@ -210,6 +210,23 @@
             transition: all 0.4s ease;
         }
 
+        .game-status.waiting {
+            background: #f59e0b;
+            color: white;
+        }
+
+        #waiting-message {
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+            color: #f59e0b;
+            font-size: 1.1rem;
+            padding: 10px;
+            background: #fef3c7;
+            border-radius: 6px;
+            border: 2px solid #f59e0b;
+        }
+
         .turn-indicator {
             text-align: center;
             padding: 12px;
@@ -321,6 +338,10 @@
                 <h2>Game Board</h2>
                 <div id="board"></div>
 
+                <div id="waiting-message" {% if game_ready %}style="display: none;" {% endif %}>
+                    Waiting for second player... ({{ player_count }}/2 players joined)
+                </div>
+
                 <div id="check-notification" style="display: none;">
                     Check!
                 </div>
@@ -337,7 +358,13 @@
 
                 <div class="status-section">
                     <h3>Game Status</h3>
-                    <div id="game-status" class="game-status">Game Active</div>
+                    <div id="game-status" class="game-status {% if not game_ready %}waiting{% endif %}">
+                        {% if game_ready %}
+                        Game Active
+                        {% else %}
+                        Waiting for Players
+                        {% endif %}
+                    </div>
                 </div>
 
                 <div class="status-section">
@@ -376,17 +403,21 @@
         const initialFen = '{{ fen }}';
         const currentTurn = '{{ turn }}';
         const currentUser = '{{ current_user.username if current_user else "" }}';
+        const gameReady = {{ 'true' if game_ready else 'false' }};
+        const playerCount = {{ player_count }};
+        const gameStatus = '{{ game_status }}';
 
         let board = null;
         let game = new Chess(initialFen);
         let socket = null;
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 5;
+        let gameIsReady = gameReady;
 
         function initBoard() {
             const config = {
                 position: initialFen,
-                draggable: true,
+                draggable: gameIsReady,
                 onDrop: onDrop,
                 pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
                 boardTheme: 'classic',
@@ -405,6 +436,10 @@
         }
 
         function onDrop(source, target) {
+            if (!gameIsReady) {
+                return 'snapback';
+            }
+
             if ((userColor === 'white' && game.turn() === 'w') ||
                 (userColor === 'black' && game.turn() === 'b')) {
 
@@ -443,6 +478,36 @@
             }
         }
 
+        function updateGameStatus(status, playerCount, ready) {
+            const statusElement = document.getElementById('game-status');
+            const waitingMessage = document.getElementById('waiting-message');
+
+            gameIsReady = ready;
+
+            if (ready) {
+                statusElement.textContent = 'Game Active';
+                statusElement.className = 'game-status';
+                if (waitingMessage) {
+                    waitingMessage.style.display = 'none';
+                }
+                if (board) {
+                    board.destroy();
+                    initBoard();
+                }
+            } else {
+                statusElement.textContent = 'Waiting for Players';
+                statusElement.className = 'game-status waiting';
+                if (waitingMessage) {
+                    waitingMessage.style.display = 'block';
+                    waitingMessage.textContent = `Waiting for second player... (${playerCount}/2 players joined)`;
+                }
+                if (board) {
+                    board.destroy();
+                    initBoard();
+                }
+            }
+        }
+
         function updateMoveHistory(moves) {
             const historyContainer = document.getElementById('move-history');
             if (moves.length === 0) {
@@ -471,7 +536,23 @@
                 socket.onmessage = function (event) {
                     const data = JSON.parse(event.data);
 
-                    if (data.type === 'move') {
+                    if (data.type === 'game_status') {
+                        updateGameStatus(data.status, data.player_count, data.game_ready);
+                        game = new Chess(data.fen);
+                        board.position(data.fen);
+                        updateTurnIndicator();
+                    } else if (data.type === 'game_started') {
+                        updateGameStatus('active', 2, true);
+                        const checkNotification = document.getElementById('check-notification');
+                        checkNotification.textContent = data.message;
+                        checkNotification.style.display = 'block';
+                        checkNotification.style.color = '#10b981';
+                        checkNotification.style.background = '#d1fae5';
+                        checkNotification.style.borderColor = '#10b981';
+                        setTimeout(() => {
+                            checkNotification.style.display = 'none';
+                        }, 3000);
+                    } else if (data.type === 'move') {
                         game = new Chess(data.fen);
                         board.position(data.fen);
                         updateTurnIndicator();
@@ -511,16 +592,18 @@
             const statusElement = document.getElementById('game-status');
             const checkNotification = document.getElementById('check-notification');
 
-            const shouldShowNotification = (userColor === 'white' && game.turn() === 'b') ||
-                (userColor === 'black' && game.turn() === 'w') ||
-                status === 'stalemate' || status === 'draw';
+            // Determine whose king is in check
+            const kingInCheck = (game.in_check() && game.turn() === 'w') ? 'white' : (game.in_check() && game.turn() === 'b') ? 'black' : null;
+            const isMyKingInCheck = kingInCheck === userColor;
 
             switch (status) {
                 case 'checkmate':
                     statusElement.textContent = 'Checkmate!';
-                    if (shouldShowNotification) {
-                        checkNotification.textContent = 'Checkmate! Game Over!';
+                    if (isMyKingInCheck) {
+                        checkNotification.textContent = 'Checkmate! Your king is in checkmate!';
                         checkNotification.style.display = 'block';
+                    } else {
+                        checkNotification.style.display = 'none';
                     }
                     break;
                 case 'stalemate':
@@ -535,20 +618,25 @@
                     break;
                 default:
                     statusElement.textContent = 'Game Active';
+                    if (isMyKingInCheck) {
+                        checkNotification.textContent = 'Check! Your king is in check!';
+                        checkNotification.style.display = 'block';
+                    } else {
+                        checkNotification.style.display = 'none';
+                    }
             }
         }
 
         function checkForCheck() {
             const checkNotification = document.getElementById('check-notification');
-
-            const isCurrentPlayerInCheck = (userColor === 'white' && game.turn() === 'b' && game.in_check()) ||
-                (userColor === 'black' && game.turn() === 'w' && game.in_check());
-
-            if (isCurrentPlayerInCheck) {
-                checkNotification.textContent = 'Check!';
+            // Determine whose king is in check
+            const kingInCheck = (game.in_check() && game.turn() === 'w') ? 'white' : (game.in_check() && game.turn() === 'b') ? 'black' : null;
+            const isMyKingInCheck = kingInCheck === userColor;
+            if (isMyKingInCheck) {
+                checkNotification.textContent = 'Check! Your king is in check!';
                 checkNotification.style.display = 'block';
             } else {
-                if (checkNotification.textContent === 'Check!') {
+                if (checkNotification.textContent.startsWith('Check!')) {
                     checkNotification.style.display = 'none';
                 }
             }
@@ -558,8 +646,8 @@
             initBoard();
             connectWebSocket();
             updateTurnIndicator();
+            updateGameStatus(gameStatus, playerCount, gameReady);
 
-            // Set initial background color based on current turn
             if (currentTurn === 'white') {
                 document.body.className = 'white-turn';
             } else {

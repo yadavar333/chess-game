@@ -57,6 +57,20 @@ class GameManager:
         
         db.commit()
         
+        # --- Keep only last 10 games in DB ---
+        all_games = db.query(Game).order_by(Game.created_at.asc() if hasattr(Game, 'created_at') else Game.id.asc()).all()
+        if len(all_games) > 10:
+            games_to_delete = all_games[:-10]
+            for old_game in games_to_delete:
+                # Delete related moves
+                db.query(GameMove).filter(GameMove.game_id == old_game.id).delete()
+                # Delete related players
+                db.query(GamePlayer).filter(GamePlayer.game_id == old_game.id).delete()
+                # Delete the game itself
+                db.delete(old_game)
+            db.commit()
+        # --- End keep only last 10 games ---
+        
         # Initialize in-memory game state
         self.connections[game_id] = []
         self.game_boards[game_id] = chess.Board()
@@ -373,13 +387,20 @@ async def game_page(request: Request, game_id: str, db: Session = Depends(get_db
     fen = game_manager.get_game_board(game_id).fen()
     turn = game_manager.get_game_turn(game_id)
     
+    # Get player count to determine if game is ready
+    player_count = db.query(GamePlayer).filter(GamePlayer.game_id == game_id).count()
+    game_ready = player_count >= 2
+    
     return templates.TemplateResponse("game.html", {
         "request": request,
         "game_id": game_id,
         "user_color": user_color,
         "fen": fen,
         "turn": turn,
-        "current_user": current_user
+        "current_user": current_user,
+        "game_status": game.status,
+        "player_count": player_count,
+        "game_ready": game_ready
     })
 
 @app.websocket("/ws/{game_id}")
@@ -409,11 +430,42 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             add_online_user(current_user.id, current_user.username)
             await broadcast_online_users()
         
+        # Send initial game state
+        player_count = db.query(GamePlayer).filter(GamePlayer.game_id == game_id).count()
+        game_ready = player_count >= 2
+        
+        await websocket.send_text(json.dumps({
+            "type": "game_status",
+            "status": game.status,
+            "player_count": player_count,
+            "game_ready": game_ready,
+            "fen": game_manager.get_game_board(game_id).fen(),
+            "turn": game_manager.get_game_turn(game_id)
+        }))
+        
+        # If game just became ready, broadcast to all players
+        if game_ready and game.status == "waiting":
+            game.status = "active"
+            db.commit()
+            await game_manager.broadcast_to_game(game_id, {
+                "type": "game_started",
+                "message": "Game is ready! White moves first."
+            })
+        
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
             
             if message["type"] == "move":
+                # Check if game is ready before allowing moves
+                player_count = db.query(GamePlayer).filter(GamePlayer.game_id == game_id).count()
+                if player_count < 2:
+                    await websocket.send_text(json.dumps({
+                        "type": "error",
+                        "message": "Waiting for second player to join..."
+                    }))
+                    continue
+                
                 # Handle move
                 try:
                     move = chess.Move.from_uci(message["move"])
