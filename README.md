@@ -140,6 +140,40 @@ pip install gunicorn
 gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
+## Railway Deployment
+
+To deploy this app on Railway:
+
+1. **Push your code and tag to GitHub:**
+   ```sh
+   git push origin main
+   git push origin v1.0
+   ```
+2. **Create a new project on [Railway](https://railway.app/):**
+   - Click 'New Project' > 'Deploy from GitHub repo'.
+   - Select your chess-game repository.
+3. **Configure the deployment:**
+   - Railway will auto-detect Python from `requirements.txt`.
+   - The `Procfile` should contain:
+     ```
+     web: uvicorn main:app --host 0.0.0.0 --port $PORT
+     ```
+   - No further configuration is needed for SQLite. For PostgreSQL, add the plugin and set the DB URL.
+4. **Set environment variables (if needed):**
+   - Add any secrets or DB URLs in the Railway dashboard under 'Variables'.
+5. **Deploy the v1.0 tag:**
+   - In Railway, select the `v1.0` tag for deployment.
+6. **Access your app:**
+   - Railway will provide a public URL after deployment.
+
+**Required files:**
+- `requirements.txt`
+- `Procfile`
+- `main.py`
+- `templates/` and `static/` folders
+
+If you encounter any issues, check the Railway build logs or ask for help!
+
 ## Troubleshooting
 
 ### Common Issues
