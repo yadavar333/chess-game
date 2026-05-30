@@ -1,218 +1,182 @@
-# FastAPI Chess Game
+# Chess Game
 
-A real-time multiplayer chess game built with FastAPI, WebSockets, and modern web technologies. This project provides a lightweight alternative to Django-based chess games with native WebSocket support and no external dependencies like Redis for local development.
+A real-time multiplayer chess game. Two players can register, create a game, share a code, and play live with instant move synchronization.
 
-## Features
+## Why This Project?
 
-- **Real-time Multiplayer**: Play chess games in real-time using WebSockets
-- **User Authentication**: Simple user registration and login system
-- **Game Management**: Create and join games with unique game IDs
-- **Color Assignment**: Automatic color assignment (white/black) for players
-- **Server-side Validation**: All moves are validated on the server using python-chess
-- **Modern UI**: Clean, responsive interface with chess piece Unicode symbols
-- **Turn Management**: Automatic turn switching and validation
-- **No External Dependencies**: Works without Redis or other external services
+I built this to explore real-time features in FastAPI without overcomplicating things. The core idea: keep WebSocket communication simple, validate everything on the server, and let the browser handle just rendering.
 
-## Technology Stack
+Most chess apps either over-engineer (tons of features you don't need) or under-deliver on the real-time experience. This one tries to sit in the middle — good enough to actually play with someone, lightweight enough to understand in an afternoon.
 
-- **Backend**: FastAPI (Python web framework)
-- **WebSockets**: Native FastAPI WebSocket support
-- **Chess Engine**: python-chess library for move validation
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **Templates**: Jinja2 templating engine
-- **Server**: Uvicorn ASGI server
-- **Database**: PostgreSQL (via SQLAlchemy ORM) with SQLite fallback for local dev
-- **Authentication**: SHA-256 password hashing with salt
+## What Works
 
-## Installation
+- **Real-time Multiplayer**: Open two browser windows or send a link to a friend. Moves sync instantly.
+- **Proper Chess Rules**: Uses `python-chess` library for move validation. No weird illegal moves sneaking through.
+- **User Accounts**: Simple registration and login. Nothing fancy, just works.
+- **Game Codes**: Create a game, get a 4-letter code, share it. Your opponent joins with that code.
+- **Server-side Validation**: All move logic runs on the server. The browser can't cheat.
 
-1. **Clone or navigate to the project directory**:
-   ```bash
-   cd chess_fastapi
-   ```
+## Tech Stack
 
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+- **Backend**: FastAPI with Uvicorn
+- **Real-time**: WebSockets (no Redis, just in-process management)
+- **Database**: PostgreSQL in production, SQLite for local dev
+- **Frontend**: Plain HTML, CSS, JavaScript (no React, no build step)
+- **Move Validation**: `python-chess` library
 
-3. **Run the application**:
-   ```bash
-   python main.py
-   ```
-   
-   Or using uvicorn directly:
-   ```bash
-   uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-   ```
+## Getting Started Locally
 
-4. **Access the application**:
-   Open your browser and go to `http://localhost:8000`
-
-## Usage
-
-### Getting Started
-
-1. **Register/Login**: Create an account or login with an existing username
-2. **Create a Game**: Choose your preferred color (white or black) and create a new game
-3. **Share Game ID**: Share the game ID with your opponent
-4. **Join Game**: Your opponent can join by visiting `/game/[GAME_ID]`
-
-### Game Rules
-
-- White always moves first
-- Standard chess rules apply
-- All moves are validated server-side
-- Games are played in real-time with automatic synchronization
-
-### Game Flow
-
-1. **Game Creation**: Player creates a game and chooses their color
-2. **Player Joining**: Second player joins using the game ID
-3. **Color Assignment**: Joining player gets the opposite color
-4. **Real-time Play**: Players take turns making moves
-5. **Automatic Sync**: All moves are synchronized between players
-
-## Project Structure
-
-```
-chess-game/
-├── main.py              # FastAPI application and WebSocket handlers
-├── database.py          # SQLAlchemy models and database setup
-├── requirements.txt     # Python dependencies (includes psycopg2-binary)
-├── runtime.txt          # Python version (3.12)
-├── Procfile             # Process declaration for deployment
-├── .gitignore           # Git ignore rules
-├── config.json          # App configuration (static/templates dirs)
-├── README.md            # This file
-├── templates/
-│   ├── index.html       # Home page with registration/login/lobby
-│   └── game.html        # Chess game interface
-├── static/              # Static files placeholder
-└── data/
-    └── chess_game.db    # SQLite database (local dev only)
-```
-
-## API Endpoints
-
-### HTTP Routes
-- `GET /` - Home page with registration and game creation
-- `POST /register` - User registration
-- `POST /login` - User login
-- `POST /logout` - User logout
-- `POST /create-game` - Create a new chess game
-- `GET /game/{game_id}` - Join or view a specific game
-
-### WebSocket Routes
-- `WS /ws/{game_id}` - Real-time game communication
-
-## Key Features Explained
-
-### 1. Persistent Database Storage
-The application uses SQLAlchemy ORM with PostgreSQL for persistent storage (or SQLite for local development). User accounts, game history, and moves are all saved to the database and survive server restarts.
-
-### 2. WebSocket Communication
-Real-time communication is handled through FastAPI's native WebSocket support with in-memory `GameManager` for active games. No external message brokers (Redis) required.
-
-### 3. Chess Move Validation
-All moves are validated server-side using the `python-chess` library, ensuring game integrity and preventing illegal moves.
-
-### 4. Automatic Color Assignment
-When a player joins a game, they are automatically assigned the opposite color of the game creator.
-
-### 5. Session Management
-User sessions are stored in the database with expiry (7 days), providing secure authentication via HTTP-only cookies.
-
-## Development
-
-### Adding Features
-
-1. **Database Integration**: Replace in-memory storage with SQLAlchemy or another ORM
-2. **User Profiles**: Add user statistics and game history
-3. **Game Variants**: Implement different chess variants
-4. **AI Opponent**: Add computer player using chess engines
-5. **Spectator Mode**: Allow users to watch games without playing
-
-### Deployment
-
-For production deployment:
-
-1. **Use a production ASGI server** like Gunicorn with Uvicorn workers
-2. **Add a database** (PostgreSQL, MySQL, etc.) for persistent storage
-3. **Set up reverse proxy** (Nginx) for static file serving
-4. **Configure environment variables** for sensitive data
-5. **Add SSL/TLS** for secure WebSocket connections
-
-Example deployment with Gunicorn:
 ```bash
-pip install gunicorn
-gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+git clone <this-repo>
+cd chess-game
+pip install -r requirements.txt
+python main.py
 ```
 
-## Free Deployment (Render + Neon)
+Open `http://localhost:8000` in your browser. Register, create a game, open another browser/incognito window, register again, join the game.
 
-Deploy this app **completely free** using Render (FastAPI hosting) + Neon (PostgreSQL database).
+## How It's Structured
 
-### Prerequisites
-- GitHub account with this repo pushed
-- Neon account (free tier, no credit card)
-- Render account (free tier, no credit card)
+```
+main.py           # FastAPI app, WebSocket handlers, routes
+database.py       # User, Game, GameMove models (SQLAlchemy)
+requirements.txt  # Dependencies
+templates/
+  ├── index.html  # Login, registration, game lobby
+  └── game.html   # Chess board and move interface
+```
 
-### Step 1: Create Neon PostgreSQL Database
-1. Sign up at [Neon](https://neon.com) (free tier, no credit card)
-2. Create a new project
-3. Copy your connection string: `postgresql://user:password@host/neondb`
+## Deploying (Free)
 
-### Step 2: Deploy to Render
-1. Sign up at [Render](https://render.com) with GitHub
-2. Click **New → Web Service**
-3. Select your `chess-game` repo, branch `main`
-4. Configure:
-   - **Build command**: `pip install -r requirements.txt`
-   - **Start command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - **Plan**: Free
-5. **Add Environment Variables** (click Advanced):
-   - `DATABASE_URL`: (paste your Neon connection string)
-   - `PYTHONUNBUFFERED`: `1`
-   - `PYTHON_VERSION`: `3.12.0` (⚠️ critical — forces Python 3.12)
-6. Click **Create Web Service** and wait 3–5 minutes
+I'm using Render (free tier) + Neon (free PostgreSQL) because:
+- Zero credit card cost
+- WebSocket support works perfectly
+- Database persists across redeploys
+- Git push = instant deploy
 
-### Step 3: Test
-- Open the Render URL in two browser tabs
-- Register two users, create a game, join, and verify moves sync in real-time
+**Quick setup:**
+1. Create a Neon account, get a PostgreSQL connection string
+2. Create a Render account, connect your GitHub repo
+3. Set environment variables: `DATABASE_URL`, `PYTHONUNBUFFERED=1`, `PYTHON_VERSION=3.12.0`
+4. Deploy and test in two browser tabs
 
-### Auto-Redeploy
-Push to GitHub `main` branch anytime — Render auto-deploys:
+See the [deployment notes](#deployment) below for details.
+
+## What Happens When You Play
+
+1. Player A registers, creates a game (white)
+2. Game sends back a code like `ABCD`
+3. Player A shares the code
+4. Player B registers, joins with code `ABCD`
+5. Second player connected → game becomes "active"
+6. Both players see the board, Player A moves first
+7. Move is validated server-side, broadcast to both via WebSocket
+8. Board updates instantly in both browsers
+
+Invalid moves are rejected. Check, checkmate, and stalemate are detected automatically.
+
+## Known Limitations
+
+**Single server only.** The game state (active boards, whose turn it is) lives in process memory. Don't run multiple instances or use multiple workers — each one would have its own copy and players wouldn't see each other's moves.
+
+For a hobby project, this is fine. If you wanted to scale horizontally, you'd need to move game state to Redis or similar.
+
+**Render free tier spins down.** After 15 minutes of inactivity, the service sleeps. First request takes ~1 minute to wake up. For a real product, you'd upgrade to a paid plan (~$7/month) or use a different host.
+
+**Active games reset on redeploy.** If someone's mid-game when you push new code, their game gets corrupted. The database survives (all moves are logged), but the in-memory board state is lost. For a real app, you'd want to persist and restore that state gracefully.
+
+## For Developers
+
+If you want to extend this:
+
+- **Add an API**: The game logic is in FastAPI routes. You could expose JSON endpoints for a mobile app or different frontend.
+- **Better UI**: Replace `game.html` with a React component. The WebSocket messages stay the same.
+- **Leaderboard**: Add a `user_stats` table, track wins/losses, show rankings.
+- **Different time controls**: Blitz, rapid, classical. Just track move timestamps and validate.
+- **AI opponent**: Plug in a chess engine (Stockfish) for single-player games.
+
+The code is straightforward enough to fork and modify. Main entry point is `main.py`. Database models are in `database.py`.
+
+## Running Tests
+
+No automated tests yet. For now:
+1. Start the server locally
+2. Open two browser windows (or private windows)
+3. Register two users
+4. Create and join a game
+5. Try various moves: normal moves, captures, castling, promotion, checks
+6. Try illegal moves — they should be rejected
+7. Try disconnecting and reconnecting — the game should recover
+
+## Deployment
+
+### Local
+
 ```bash
-git push origin main
+python main.py
+# Runs on http://127.0.0.1:8000 with auto-reload
 ```
 
-### Limitations (Free Tier)
-- **Render**: Spins down after 15 min inactivity (wakes in ~1 min). For 24/7, upgrade ($7+/month)
-- **Neon**: 512 MB storage, 100 CU-hours/month. Adequate for demo/dev
-- **Single worker**: GameManager is in-process. Never add `--workers N` or scale horizontally
+### Production (Render + Neon)
 
-**Cost: $0** — both platforms have no-credit-card free tiers.
+**Setup Neon PostgreSQL:**
+1. Sign up at [neon.com](https://neon.com) (free tier, no credit card)
+2. Create a project
+3. Copy your connection string (looks like `postgresql://user:pass@host/neondb`)
+
+**Setup Render:**
+1. Sign up at [render.com](https://render.com) with GitHub
+2. Create a new web service from this repo
+3. Set environment variables:
+   - `DATABASE_URL`: your Neon connection string
+   - `PYTHONUNBUFFERED`: `1` (for real-time logs)
+   - `PYTHON_VERSION`: `3.12.0` (important — Render defaults to 3.14, which breaks sqlalchemy)
+4. Build command: `pip install -r requirements.txt`
+5. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+6. Click deploy, wait 3–5 minutes
+
+**Test it:**
+- Get the Render URL from the dashboard
+- Open in two browser tabs
+- Register two users, create a game, join, play
+- Check Render logs if something breaks
+
+**Re-deploy:** Just push to GitHub. Render auto-detects the change and redeploys.
+
+**Cost:** $0 for both Render and Neon free tiers. Render can handle hobby traffic fine. Neon gives you 512 MB database storage.
 
 ## Troubleshooting
 
-### Common Issues
+**WebSocket connection fails:**
+- Make sure you're using HTTPS (Render enforces this)
+- Check browser console (F12) for actual error
+- Check Render logs for server errors
 
-1. **WebSocket Connection Failed**: Ensure the server is running and accessible
-2. **Move Not Working**: Check browser console for JavaScript errors
-3. **Game Not Loading**: Verify the game ID is correct and the game exists
+**Moves aren't syncing:**
+- Probably a WebSocket disconnect. Refresh the page.
+- Check Render logs for errors
+- Make sure both players are actually connected
 
-### Debug Mode
+**Database connection error:**
+- Verify `DATABASE_URL` is set correctly in Render
+- Verify the Neon connection string is complete (includes password)
+- Neon might be rate-limiting if the database is overloaded (unlikely on free tier)
 
-Run the application in debug mode for detailed error messages:
-```bash
-uvicorn main:app --reload --log-level debug
-```
+**App takes forever to load after sitting idle:**
+- Render's free tier spins down services after 15 minutes. First request wakes it. Takes ~1 minute.
+- This is expected. Upgrade to paid if you need instant responses.
 
 ## License
 
-This project is open source and available under the MIT License.
+MIT. Use it, modify it, learn from it.
 
-## Contributing
+## Random Notes
 
-Feel free to submit issues, feature requests, or pull requests to improve the chess game! 
+- The chess piece rendering uses Unicode symbols (♟ ♞ ♗ etc). Simple and works everywhere.
+- Passwords are hashed with SHA-256 + salt. Not super hardened, but reasonable for a hobby project.
+- Game codes are random 8-character strings. Collision risk is negligible for small deployments.
+- The database keeps only the last 10 games. Old games are deleted to save space. You can change this in `main.py` if needed.
+
+---
+
+If you fork this or use it as a reference, I'd love to hear what you build with it.
