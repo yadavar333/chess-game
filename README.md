@@ -1,182 +1,126 @@
 # Chess Game
 
-A real-time multiplayer chess game. Two players can register, create a game, share a code, and play live with instant move synchronization.
+A real-time multiplayer chess app I built to see if I could get WebSockets working smoothly in FastAPI without overthinking it.
 
-## Why This Project?
+## The Idea
 
-I built this to explore real-time features in FastAPI without overcomplicating things. The core idea: keep WebSocket communication simple, validate everything on the server, and let the browser handle just rendering.
+I wanted to build something you could actually *play* — not just a demo. Two people register, one creates a game and gets a code, the other joins with that code, and they're playing live. Moves show up instantly on both screens.
 
-Most chess apps either over-engineer (tons of features you don't need) or under-deliver on the real-time experience. This one tries to sit in the middle — good enough to actually play with someone, lightweight enough to understand in an afternoon.
+Most of the chess apps I looked at felt either way too engineered or kinda sluggish on the real-time side. So I thought: what if I just made something minimal that actually feels responsive?
 
-## What Works
+## How It Works
 
-- **Real-time Multiplayer**: Open two browser windows or send a link to a friend. Moves sync instantly.
-- **Proper Chess Rules**: Uses `python-chess` library for move validation. No weird illegal moves sneaking through.
-- **User Accounts**: Simple registration and login. Nothing fancy, just works.
-- **Game Codes**: Create a game, get a 4-letter code, share it. Your opponent joins with that code.
-- **Server-side Validation**: All move logic runs on the server. The browser can't cheat.
+The game logic lives on the server. Browser sends a move, server validates it (using `python-chess`), logs it to the database, and broadcasts it to both players via WebSocket. Pretty straightforward.
 
-## Tech Stack
+I kept the frontend simple — just HTML, CSS, and vanilla JavaScript. No build step, no framework overhead. The hardest part was actually getting the WebSocket reconnection smooth, which honestly I'm still not 100% happy with.
 
-- **Backend**: FastAPI with Uvicorn
-- **Real-time**: WebSockets (no Redis, just in-process management)
-- **Database**: PostgreSQL in production, SQLite for local dev
-- **Frontend**: Plain HTML, CSS, JavaScript (no React, no build step)
-- **Move Validation**: `python-chess` library
+## What's in Here
 
-## Getting Started Locally
+```
+main.py           # All the FastAPI routes and WebSocket stuff
+database.py       # User and game models (using SQLAlchemy)
+requirements.txt  # Dependencies
+templates/
+  ├── index.html  # Login, game creation, lobby
+  └── game.html   # The actual chessboard
+```
+
+Nothing fancy. I could've added a testing framework, but I just play test it instead — open two windows, try some moves, try to break it. Seems to work.
+
+## Running It Locally
 
 ```bash
-git clone <this-repo>
-cd chess-game
 pip install -r requirements.txt
 python main.py
 ```
 
-Open `http://localhost:8000` in your browser. Register, create a game, open another browser/incognito window, register again, join the game.
+Opens on `http://localhost:8000`. Create an account, make a game, open another window (incognito works), join it. That's it.
 
-## How It's Structured
+The first time you run it, it creates a SQLite database locally. Fine for development.
 
-```
-main.py           # FastAPI app, WebSocket handlers, routes
-database.py       # User, Game, GameMove models (SQLAlchemy)
-requirements.txt  # Dependencies
-templates/
-  ├── index.html  # Login, registration, game lobby
-  └── game.html   # Chess board and move interface
-```
+## The Tech Choices
 
-## Deploying (Free)
+**FastAPI:** I like how clean the code is. WebSocket support is native, no weird hacks needed.
 
-I'm using Render (free tier) + Neon (free PostgreSQL) because:
-- Zero credit card cost
-- WebSocket support works perfectly
-- Database persists across redeploys
-- Git push = instant deploy
+**WebSockets:** Could've used polling, but WebSockets feel right for a real-time game. Latency matters.
 
-**Quick setup:**
-1. Create a Neon account, get a PostgreSQL connection string
-2. Create a Render account, connect your GitHub repo
-3. Set environment variables: `DATABASE_URL`, `PYTHONUNBUFFERED=1`, `PYTHON_VERSION=3.12.0`
-4. Deploy and test in two browser tabs
+**SQLAlchemy:** I wanted something that'd scale from local SQLite to a real database without rewriting everything. SQLAlchemy lets you do that.
 
-See the [deployment notes](#deployment) below for details.
+**Vanilla JavaScript:** Honestly just because I didn't want to deal with a build step. If this got bigger, I'd probably switch to something like React, but for now it's nice having a single HTML file that works.
 
-## What Happens When You Play
+**`python-chess`:** Great library. I didn't want to reimplement chess rules. Too many edge cases (castling, en passant, promotion).
 
-1. Player A registers, creates a game (white)
-2. Game sends back a code like `ABCD`
-3. Player A shares the code
-4. Player B registers, joins with code `ABCD`
-5. Second player connected → game becomes "active"
-6. Both players see the board, Player A moves first
-7. Move is validated server-side, broadcast to both via WebSocket
-8. Board updates instantly in both browsers
+## Deploying This Thing
 
-Invalid moves are rejected. Check, checkmate, and stalemate are detected automatically.
+I got it running on Render with Neon PostgreSQL because they have a free tier and I didn't want to pay anything. The setup was annoying because Render kept trying to use Python 3.14 (which breaks SQLAlchemy), but once I pinned it to 3.12, it just worked.
 
-## Known Limitations
+**The flow:**
+- Code lives on GitHub
+- Render watches the repo. Push to `main`, it auto-deploys
+- Database runs on Neon (free tier gives 512 MB)
+- Takes about 3 minutes to deploy
 
-**Single server only.** The game state (active boards, whose turn it is) lives in process memory. Don't run multiple instances or use multiple workers — each one would have its own copy and players wouldn't see each other's moves.
+It's obviously not production-grade (free tier Render spins down after 15 minutes of inactivity, active games get corrupted if you redeploy mid-game), but for showing the idea to people, it's perfect.
 
-For a hobby project, this is fine. If you wanted to scale horizontally, you'd need to move game state to Redis or similar.
+## What I'd Do Differently
 
-**Render free tier spins down.** After 15 minutes of inactivity, the service sleeps. First request takes ~1 minute to wake up. For a real product, you'd upgrade to a paid plan (~$7/month) or use a different host.
+**Graceful reconnects:** Right now if you disconnect and reconnect, the game state can get weird. I'd want to store more board state on the server and rebuild it on reconnect.
 
-**Active games reset on redeploy.** If someone's mid-game when you push new code, their game gets corrupted. The database survives (all moves are logged), but the in-memory board state is lost. For a real app, you'd want to persist and restore that state gracefully.
+**More than one worker:** The game state (whose turn, what's on the board) lives in Python's memory. You can't run multiple instances without everything breaking. For a real app, you'd move that to Redis and be done in an afternoon.
 
-## For Developers
+**Testing:** I should've written tests from the start instead of just clicking around. Would've caught some of the edge cases earlier.
 
-If you want to extend this:
+**Frontend polish:** The UI works but it's bare-bones. Drag-and-drop would be nicer than clicking. Mobile support is nonexistent.
 
-- **Add an API**: The game logic is in FastAPI routes. You could expose JSON endpoints for a mobile app or different frontend.
-- **Better UI**: Replace `game.html` with a React component. The WebSocket messages stay the same.
-- **Leaderboard**: Add a `user_stats` table, track wins/losses, show rankings.
-- **Different time controls**: Blitz, rapid, classical. Just track move timestamps and validate.
-- **AI opponent**: Plug in a chess engine (Stockfish) for single-player games.
+But honestly? It does what it's supposed to do. Two people can play a real game of chess together in real-time. That's the bar I set, and it clears it.
 
-The code is straightforward enough to fork and modify. Main entry point is `main.py`. Database models are in `database.py`.
+## If You Want to Fork This
 
-## Running Tests
+The code's pretty readable. Main entry point is `main.py`. Game logic is there, WebSocket handlers are there. Database models are in `database.py` if you want to add stuff like game statistics or user profiles.
 
-No automated tests yet. For now:
-1. Start the server locally
-2. Open two browser windows (or private windows)
-3. Register two users
-4. Create and join a game
-5. Try various moves: normal moves, captures, castling, promotion, checks
-6. Try illegal moves — they should be rejected
-7. Try disconnecting and reconnecting — the game should recover
+Ideas I thought about but didn't build:
+- Leaderboard / game history
+- Time controls (blitz, rapid, etc)
+- Playing against the computer (would need Stockfish or similar)
+- Spectator mode
+- Elo ratings
 
-## Deployment
+Any of those would be fun to add. The architecture doesn't make it hard.
 
-### Local
+## Actually Running It (Locally & Deployed)
 
+**Locally:**
 ```bash
 python main.py
-# Runs on http://127.0.0.1:8000 with auto-reload
+# http://localhost:8000
 ```
 
-### Production (Render + Neon)
+**Deployed:**
+- Code: GitHub repo
+- App: Render (free tier)
+- Database: Neon PostgreSQL (free tier)
+- Environment variables on Render: `DATABASE_URL`, `PYTHONUNBUFFERED=1`, `PYTHON_VERSION=3.12.0`
 
-**Setup Neon PostgreSQL:**
-1. Sign up at [neon.com](https://neon.com) (free tier, no credit card)
-2. Create a project
-3. Copy your connection string (looks like `postgresql://user:pass@host/neondb`)
+The `PYTHON_VERSION` thing was important — Render defaults to whatever latest is, and that broke things. Pinning it solved it.
 
-**Setup Render:**
-1. Sign up at [render.com](https://render.com) with GitHub
-2. Create a new web service from this repo
-3. Set environment variables:
-   - `DATABASE_URL`: your Neon connection string
-   - `PYTHONUNBUFFERED`: `1` (for real-time logs)
-   - `PYTHON_VERSION`: `3.12.0` (important — Render defaults to 3.14, which breaks sqlalchemy)
-4. Build command: `pip install -r requirements.txt`
-5. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-6. Click deploy, wait 3–5 minutes
+## The Honest Bits
 
-**Test it:**
-- Get the Render URL from the dashboard
-- Open in two browser tabs
-- Register two users, create a game, join, play
-- Check Render logs if something breaks
+**Render's free tier is slow at startup.** After sitting idle for 15 minutes, the first request takes forever (like 1 minute). You can upgrade to like $7/month if you want it instant, but for a side project, it doesn't really matter.
 
-**Re-deploy:** Just push to GitHub. Render auto-detects the change and redeploys.
+**Can't scale horizontally.** The game state is in-process. Two instances = two separate games = broken. You'd need to refactor that to work at scale, but honestly most of what I built doesn't need to scale. It's a fun project, not a business.
 
-**Cost:** $0 for both Render and Neon free tiers. Render can handle hobby traffic fine. Neon gives you 512 MB database storage.
+**Passwords aren't Fort Knox.** SHA-256 with salt. Not the most hardened thing ever, but way better than plaintext and good enough for a hobby project where the worst that happens is someone plays as someone else.
 
-## Troubleshooting
+**Database only keeps 10 games.** Old ones get deleted. You can change that in the code if you want to keep history. Decided it wasn't worth the storage cost on the free tier.
 
-**WebSocket connection fails:**
-- Make sure you're using HTTPS (Render enforces this)
-- Check browser console (F12) for actual error
-- Check Render logs for server errors
+## Misc
 
-**Moves aren't syncing:**
-- Probably a WebSocket disconnect. Refresh the page.
-- Check Render logs for errors
-- Make sure both players are actually connected
+Unicode chess pieces (♟ ♞ ♗ ♕) work great. Simple, works everywhere, looks decent.
 
-**Database connection error:**
-- Verify `DATABASE_URL` is set correctly in Render
-- Verify the Neon connection string is complete (includes password)
-- Neon might be rate-limiting if the database is overloaded (unlikely on free tier)
+Game codes are 8 random characters. Collision risk is basically zero for small deployments.
 
-**App takes forever to load after sitting idle:**
-- Render's free tier spins down services after 15 minutes. First request wakes it. Takes ~1 minute.
-- This is expected. Upgrade to paid if you need instant responses.
-
-## License
-
-MIT. Use it, modify it, learn from it.
-
-## Random Notes
-
-- The chess piece rendering uses Unicode symbols (♟ ♞ ♗ etc). Simple and works everywhere.
-- Passwords are hashed with SHA-256 + salt. Not super hardened, but reasonable for a hobby project.
-- Game codes are random 8-character strings. Collision risk is negligible for small deployments.
-- The database keeps only the last 10 games. Old games are deleted to save space. You can change this in `main.py` if needed.
+If I'm being real, the part I'm least happy with is the reconnection logic. It's not broken, but it's a bit fragile. That's where I'd focus if I were going to keep working on it.
 
 ---
 
-If you fork this or use it as a reference, I'd love to hear what you build with it.
+It was fun building this. If you use it, build on it, or steal ideas from it, that's cool. Happy to answer questions if you have them.
