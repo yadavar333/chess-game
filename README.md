@@ -21,6 +21,8 @@ A real-time multiplayer chess game built with FastAPI, WebSockets, and modern we
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
 - **Templates**: Jinja2 templating engine
 - **Server**: Uvicorn ASGI server
+- **Database**: PostgreSQL (via SQLAlchemy ORM) with SQLite fallback for local dev
+- **Authentication**: SHA-256 password hashing with salt
 
 ## Installation
 
@@ -74,14 +76,21 @@ A real-time multiplayer chess game built with FastAPI, WebSockets, and modern we
 ## Project Structure
 
 ```
-chess_fastapi/
+chess-game/
 ├── main.py              # FastAPI application and WebSocket handlers
-├── requirements.txt     # Python dependencies
-├── README.md           # This file
-├── templates/          # HTML templates
-│   ├── index.html      # Home page with registration/login
-│   └── game.html       # Chess game interface
-└── static/             # Static files (CSS, JS, images)
+├── database.py          # SQLAlchemy models and database setup
+├── requirements.txt     # Python dependencies (includes psycopg2-binary)
+├── runtime.txt          # Python version (3.12)
+├── Procfile             # Process declaration for deployment
+├── .gitignore           # Git ignore rules
+├── config.json          # App configuration (static/templates dirs)
+├── README.md            # This file
+├── templates/
+│   ├── index.html       # Home page with registration/login/lobby
+│   └── game.html        # Chess game interface
+├── static/              # Static files placeholder
+└── data/
+    └── chess_game.db    # SQLite database (local dev only)
 ```
 
 ## API Endpoints
@@ -99,20 +108,20 @@ chess_fastapi/
 
 ## Key Features Explained
 
-### 1. In-Memory Storage
-The application uses in-memory storage for games and users, making it perfect for development and small-scale deployment. For production, you can easily replace this with a database.
+### 1. Persistent Database Storage
+The application uses SQLAlchemy ORM with PostgreSQL for persistent storage (or SQLite for local development). User accounts, game history, and moves are all saved to the database and survive server restarts.
 
 ### 2. WebSocket Communication
-Real-time communication is handled through FastAPI's native WebSocket support, eliminating the need for external message brokers like Redis.
+Real-time communication is handled through FastAPI's native WebSocket support with in-memory `GameManager` for active games. No external message brokers (Redis) required.
 
 ### 3. Chess Move Validation
-All moves are validated using the `python-chess` library, ensuring game integrity and preventing illegal moves.
+All moves are validated server-side using the `python-chess` library, ensuring game integrity and preventing illegal moves.
 
 ### 4. Automatic Color Assignment
 When a player joins a game, they are automatically assigned the opposite color of the game creator.
 
 ### 5. Session Management
-User sessions are managed through cookies, providing a simple authentication system.
+User sessions are stored in the database with expiry (7 days), providing secure authentication via HTTP-only cookies.
 
 ## Development
 
@@ -140,39 +149,50 @@ pip install gunicorn
 gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
-## Railway Deployment
+## Free Deployment (Render + Neon)
 
-To deploy this app on Railway:
+Deploy this app **completely free** using Render (FastAPI hosting) + Neon (PostgreSQL database).
 
-1. **Push your code and tag to GitHub:**
-   ```sh
-   git push origin main
-   git push origin v1.0
-   ```
-2. **Create a new project on [Railway](https://railway.app/):**
-   - Click 'New Project' > 'Deploy from GitHub repo'.
-   - Select your chess-game repository.
-3. **Configure the deployment:**
-   - Railway will auto-detect Python from `requirements.txt`.
-   - The `Procfile` should contain:
-     ```
-     web: uvicorn main:app --host 0.0.0.0 --port $PORT
-     ```
-   - No further configuration is needed for SQLite. For PostgreSQL, add the plugin and set the DB URL.
-4. **Set environment variables (if needed):**
-   - Add any secrets or DB URLs in the Railway dashboard under 'Variables'.
-5. **Deploy the v1.0 tag:**
-   - In Railway, select the `v1.0` tag for deployment.
-6. **Access your app:**
-   - Railway will provide a public URL after deployment.
+### Prerequisites
+- GitHub account with this repo pushed
+- Neon account (free tier, no credit card)
+- Render account (free tier, no credit card)
 
-**Required files:**
-- `requirements.txt`
-- `Procfile`
-- `main.py`
-- `templates/` and `static/` folders
+### Step 1: Create Neon PostgreSQL Database
+1. Sign up at [Neon](https://neon.com) (free tier, no credit card)
+2. Create a new project
+3. Copy your connection string: `postgresql://user:password@host/neondb`
 
-If you encounter any issues, check the Railway build logs or ask for help!
+### Step 2: Deploy to Render
+1. Sign up at [Render](https://render.com) with GitHub
+2. Click **New → Web Service**
+3. Select your `chess-game` repo, branch `main`
+4. Configure:
+   - **Build command**: `pip install -r requirements.txt`
+   - **Start command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Plan**: Free
+5. **Add Environment Variables** (click Advanced):
+   - `DATABASE_URL`: (paste your Neon connection string)
+   - `PYTHONUNBUFFERED`: `1`
+   - `PYTHON_VERSION`: `3.12.0` (⚠️ critical — forces Python 3.12)
+6. Click **Create Web Service** and wait 3–5 minutes
+
+### Step 3: Test
+- Open the Render URL in two browser tabs
+- Register two users, create a game, join, and verify moves sync in real-time
+
+### Auto-Redeploy
+Push to GitHub `main` branch anytime — Render auto-deploys:
+```bash
+git push origin main
+```
+
+### Limitations (Free Tier)
+- **Render**: Spins down after 15 min inactivity (wakes in ~1 min). For 24/7, upgrade ($7+/month)
+- **Neon**: 512 MB storage, 100 CU-hours/month. Adequate for demo/dev
+- **Single worker**: GameManager is in-process. Never add `--workers N` or scale horizontally
+
+**Cost: $0** — both platforms have no-credit-card free tiers.
 
 ## Troubleshooting
 
